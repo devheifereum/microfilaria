@@ -68,7 +68,7 @@ export default function Home() {
     formData.append('confidence', confidence.toString())
 
     try {
-      const response = await fetch('http://localhost:1000/api/detect', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/detect`, {
         method: 'POST',
         body: formData
       })
@@ -103,11 +103,10 @@ export default function Home() {
       <div className="fixed top-6 right-6 z-50">
         <button
           onClick={() => setIsDarkMode(!isDarkMode)}
-          className={`p-3 rounded-xl transition-all duration-300 ${
-            isDarkMode 
-              ? 'bg-white text-black hover:bg-gray-100' 
-              : 'bg-black text-white hover:bg-gray-800'
-          } shadow-lg hover:shadow-xl`}
+          className={`p-3 rounded-xl transition-all duration-300 ${isDarkMode
+            ? 'bg-white text-black hover:bg-gray-100'
+            : 'bg-black text-white hover:bg-gray-800'
+            } shadow-lg hover:shadow-xl`}
         >
           {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
         </button>
@@ -351,7 +350,7 @@ export default function Home() {
             </p>
           </div>
         </div>
-        </div>
-      </main>
+      </div>
+    </main>
   )
 }
