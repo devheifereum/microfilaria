@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Upload, Target, AlertCircle, Activity, Microscope, Sun, Moon } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -43,6 +43,24 @@ export default function Home() {
   const [error, setError] = useState<string>('')
   const [confidence, setConfidence] = useState(0.25)
   const [isDarkMode, setIsDarkMode] = useState(false)
+
+  // Initialize dark mode from system preference
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches
+    setIsDarkMode(prefersDark)
+  }, [])
+
+  // Sync dark mode with the <html> class so shadcn/ui (including the navbar) respects it
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const root = document.documentElement
+    if (isDarkMode) {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
+  }, [isDarkMode])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
