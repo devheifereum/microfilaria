@@ -143,7 +143,7 @@ export default function Home() {
               </div>
               <div>
                 <h1 className={`text-4xl font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-black'} mb-1`}>
-                  Microfiliaria Detection System
+                  Microfilaria Detection System
                 </h1>
                 <p className={`${isDarkMode ? 'text-white/60' : 'text-black/60'} text-sm tracking-wide`}>
                   Advanced YOLOv8m Neural Network • Automated Blood Smear Analysis

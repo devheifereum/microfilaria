@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Microfiliaria Detection System",
+  title: "Microfilaria Detection System",
   description: "YOLOv8m - Automated Blood Smear Analysis",
 };
 
