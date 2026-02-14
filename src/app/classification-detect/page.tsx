@@ -7,43 +7,56 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { DotPattern } from '@/components/ui/dot-pattern'
 import { useTheme } from '@/components/ThemeProvider'
 
-interface Detection {
-  id: number
-  class: string
-  confidence: number
-  bbox: {
-    x1: number
-    y1: number
-    x2: number
-    y2: number
-  }
+// 40x UNET / Categorize API response types (snake_case from API)
+interface ClassStatistics {
+  class_id: number
+  avg_confidence: number
+  max_confidence: number
+  min_confidence: number
+  percentage: number
+  pixel_count: number
 }
 
-interface DetectionResponse {
+interface SegmentationResults {
+  class_statistics: Record<string, ClassStatistics>
+  dominant_class: string
+  dominant_confidence: number
+  dominant_percentage: number
+  overall_confidence: number
+}
+
+interface CategorizeImageResponse {
   success: boolean
   timestamp: string
-  image_info: {
+  image_info?: {
     width: number
     height: number
     filename: string
+    format: string
   }
-  detection_stats: {
-    total_count: number
-    average_confidence: number
-    confidence_threshold: number
-  }
-  detections: Detection[]
-  annotated_image: string
+  class_legend?: Record<string, string>
+  overlay_image: string  // data URI e.g. "data:image/jpeg;base64,..."
+  overlay_path?: string
+  segmentation_results: SegmentationResults
 }
 
-export default function Home() {
+function legendColorFromName(name: string): string {
+  const n = name.toLowerCase()
+  if (n.includes('blue')) return '#3b82f6'
+  if (n.includes('red')) return '#ef4444'
+  if (n.includes('yellow')) return '#eab308'
+  if (n.includes('green')) return '#22c55e'
+  if (n.includes('orange')) return '#f97316'
+  return '#6b7280'
+}
+
+export default function ClassificationDetectPage() {
   const { isDarkMode } = useTheme()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string>('')
   const [loading, setLoading] = useState(false)
-  const [results, setResults] = useState<DetectionResponse | null>(null)
+  const [results, setResults] = useState<CategorizeImageResponse | null>(null)
   const [error, setError] = useState<string>('')
-  const [confidence, setConfidence] = useState(0.25)
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -55,7 +68,7 @@ export default function Home() {
     }
   }
 
-  const handleDetect = async () => {
+  const handleCategorize = async () => {
     if (!selectedFile) {
       setError('Please select an image first')
       return
@@ -66,32 +79,34 @@ export default function Home() {
 
     const formData = new FormData()
     formData.append('image', selectedFile)
-    formData.append('confidence', confidence.toString())
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/detect`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categorize`, {
         method: 'POST',
-        body: formData
+        body: formData,
       })
 
       const data = await response.json()
 
-      if (data.success) {
-        setResults(data)
+      if (data.success && data.overlay_image) {
+        setResults(data as CategorizeImageResponse)
       } else {
-        setError(data.error || 'Detection failed')
+        setError(data.error || data.message || 'Segmentation failed')
       }
     } catch (err) {
-      setError('Failed to connect to API. Make sure Flask server is running on port 1000')
+      setError('Failed to connect to API. Make sure the server is running.')
       console.error(err)
     } finally {
       setLoading(false)
     }
   }
 
+  const seg = results?.segmentation_results
+  const classStats = seg?.class_statistics ? Object.entries(seg.class_statistics) : []
+  const classLegend = results?.class_legend ?? {}
+
   return (
     <main className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
-      {/* Dot Pattern Background */}
       <DotPattern
         width={8}
         height={8}
@@ -101,7 +116,6 @@ export default function Home() {
       />
 
       <div className="relative z-10">
-        {/* Header */}
         <div className={`border-b ${isDarkMode ? 'border-white/10' : 'border-black/10'}`}>
           <div className="max-w-7xl mx-auto px-8 py-12">
             <div className="flex items-center gap-4 mb-3">
@@ -113,10 +127,10 @@ export default function Home() {
               </div>
               <div>
                 <h1 className={`text-4xl font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-black'} mb-1`}>
-                  YOLOv8 10x Detection
+                  40× UNET Segmentation
                 </h1>
                 <p className={`${isDarkMode ? 'text-white/60' : 'text-black/60'} text-sm tracking-wide`}>
-                  Advanced YOLOv8m Neural Network • 10x Microscopy Image Detection
+                  UNET Classification Overlay • Segmentation overlay • Class statistics
                 </p>
               </div>
             </div>
@@ -125,22 +139,18 @@ export default function Home() {
 
         <div className="max-w-7xl mx-auto px-8 py-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Panel - Upload & Controls */}
+            {/* Left Panel - Upload */}
             <div className="h-full">
               <Card className={`${isDarkMode ? 'bg-black border-white/20' : 'bg-white border-black/20'} shadow-2xl h-full flex flex-col`}>
                 <CardHeader className={`border-b ${isDarkMode ? 'border-white/10' : 'border-black/10'}`}>
-                  <CardTitle className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>Upload Sample</CardTitle>
-                  <CardDescription className={isDarkMode ? 'text-white/60' : 'text-black/60'}>Select a blood smear image for analysis</CardDescription>
+                  <CardTitle className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>Upload Sample (40×)</CardTitle>
+                  <CardDescription className={isDarkMode ? 'text-white/60' : 'text-black/60'}>
+                    Select a blood smear image for segmentation
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-8 space-y-8 flex-1 flex flex-col">
-                  {/* File Input */}
                   <label className="block cursor-pointer group">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
+                    <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
                     <div className={`relative border-2 border-dashed ${isDarkMode ? 'border-white/30' : 'border-black/30'} rounded-2xl p-16 text-center transition-all duration-300 group-hover:${isDarkMode ? 'border-white' : 'border-black'} group-hover:${isDarkMode ? 'bg-white/5' : 'bg-black/5'} group-hover:scale-[1.02]`}>
                       <div className={`absolute top-4 right-4 w-2 h-2 ${isDarkMode ? 'bg-white' : 'bg-black'} rounded-full opacity-0 group-hover:opacity-100 transition-opacity`}></div>
                       <Upload className={`w-16 h-16 mx-auto mb-6 ${isDarkMode ? 'text-white/40' : 'text-black/40'} group-hover:${isDarkMode ? 'text-white' : 'text-black'} transition-all duration-300 group-hover:scale-110`} />
@@ -153,7 +163,6 @@ export default function Home() {
                     </div>
                   </label>
 
-                  {/* Preview */}
                   {previewUrl && (
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
@@ -161,52 +170,15 @@ export default function Home() {
                         <h3 className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-black'} uppercase tracking-wider`}>Image Preview</h3>
                       </div>
                       <div className={`relative w-full aspect-video ${isDarkMode ? 'bg-white/5' : 'bg-black/5'} rounded-xl overflow-hidden border-2 ${isDarkMode ? 'border-white/20' : 'border-black/20'} shadow-lg`}>
-                        <img
-                          src={previewUrl}
-                          alt="Preview"
-                          className="w-full h-full object-contain"
-                        />
+                        <img src={previewUrl} alt="Preview" className="w-full h-full object-contain" />
                       </div>
                     </div>
                   )}
 
-                  {/* Confidence Slider */}
-                  <div className="space-y-4 pt-2">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-1 h-5 ${isDarkMode ? 'bg-white' : 'bg-black'} rounded-full`}></div>
-                        <label className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-black'} uppercase tracking-wider`}>
-                          Confidence Threshold
-                        </label>
-                      </div>
-                      <span className={`text-lg font-mono font-bold ${isDarkMode ? 'text-white bg-white/10' : 'text-black bg-black/10'} px-3 py-1.5 rounded-lg border ${isDarkMode ? 'border-white/20' : 'border-black/20'}`}>
-                        {confidence.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        type="range"
-                        min="0.1"
-                        max="0.9"
-                        step="0.05"
-                        value={confidence}
-                        onChange={(e) => setConfidence(parseFloat(e.target.value))}
-                        className={`w-full h-3 ${isDarkMode ? 'bg-white/20' : 'bg-black/20'} rounded-full appearance-none cursor-pointer ${isDarkMode ? 'accent-white' : 'accent-black'}`}
-                      />
-                      <div className={`absolute -bottom-6 left-0 right-0 flex justify-between text-xs ${isDarkMode ? 'text-white/60' : 'text-black/60'} font-medium`}>
-                        <span>0.1 LOW</span>
-                        <span>0.5 MEDIUM</span>
-                        <span>0.9 HIGH</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Spacer */}
                   <div className="flex-1"></div>
 
-                  {/* Detect Button */}
                   <button
-                    onClick={handleDetect}
+                    onClick={handleCategorize}
                     disabled={!selectedFile || loading}
                     className={`w-full ${isDarkMode ? 'bg-white text-black hover:bg-white/90' : 'bg-black text-white hover:bg-black/90'} py-4 rounded-xl font-bold text-base disabled:${isDarkMode ? 'bg-white/30' : 'bg-black/30'} disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-3 shadow-lg hover:shadow-2xl hover:scale-[1.02] group`}
                   >
@@ -218,12 +190,11 @@ export default function Home() {
                     ) : (
                       <>
                         <Target className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-                        <span>RUN DETECTION</span>
+                        <span>RUN SEGMENTATION</span>
                       </>
                     )}
                   </button>
 
-                  {/* Error Message */}
                   {error && (
                     <Alert variant="destructive" className={`${isDarkMode ? 'border-red-400 bg-red-900/20' : 'border-red-300 bg-red-50'}`}>
                       <AlertCircle className="h-5 w-5" />
@@ -240,8 +211,10 @@ export default function Home() {
             <div className="h-full">
               <Card className={`${isDarkMode ? 'bg-black border-white/20' : 'bg-white border-black/20'} shadow-2xl h-full flex flex-col`}>
                 <CardHeader className={`border-b ${isDarkMode ? 'border-white/10' : 'border-black/10'}`}>
-                  <CardTitle className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>Analysis Results</CardTitle>
-                  <CardDescription className={isDarkMode ? 'text-white/60' : 'text-black/60'}>Detection summary and findings</CardDescription>
+                  <CardTitle className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>Segmentation Results</CardTitle>
+                  <CardDescription className={isDarkMode ? 'text-white/60' : 'text-black/60'}>
+                    Dominant class, overlay, and class statistics
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-8 flex-1 flex flex-col">
                   {!results && (
@@ -253,75 +226,106 @@ export default function Home() {
                         <div className={`absolute -top-2 -right-2 w-6 h-6 ${isDarkMode ? 'bg-white/20' : 'bg-black/20'} rounded-full`}></div>
                       </div>
                       <p className={`text-base font-bold ${isDarkMode ? 'text-white' : 'text-black'} mb-2`}>Awaiting Analysis</p>
-                      <p className={`text-sm ${isDarkMode ? 'text-white/60' : 'text-black/60'} max-w-xs`}>Upload an image and run detection to view comprehensive results</p>
+                      <p className={`text-sm ${isDarkMode ? 'text-white/60' : 'text-black/60'} max-w-xs`}>
+                        Upload a 40× image and run segmentation to view results
+                      </p>
                     </div>
                   )}
 
                   {results && (
                     <div className="space-y-8 flex-1 flex flex-col">
-                      {/* Statistics */}
+                      {/* Stats: Dominant class + Overall confidence */}
                       <div className="grid grid-cols-2 gap-6">
                         <div className={`relative border-2 ${isDarkMode ? 'border-white' : 'border-black'} rounded-2xl p-6 ${isDarkMode ? 'bg-black' : 'bg-white'} overflow-hidden group hover:${isDarkMode ? 'bg-white' : 'bg-black'} transition-colors duration-300`}>
-                          <div className={`absolute top-0 right-0 w-20 h-20 ${isDarkMode ? 'bg-white/10' : 'bg-black/10'} rounded-bl-full opacity-50 group-hover:${isDarkMode ? 'bg-black/10' : 'bg-white/10'}`}></div>
-                          <p className={`text-xs ${isDarkMode ? 'text-white/60' : 'text-black/60'} mb-2 uppercase tracking-wider font-bold group-hover:${isDarkMode ? 'text-black/60' : 'text-white/60'} transition-colors`}>Total Detections</p>
-                          <p className={`text-5xl font-black ${isDarkMode ? 'text-white' : 'text-black'} group-hover:${isDarkMode ? 'text-black' : 'text-white'} transition-colors relative z-10`}>
-                            {results.detection_stats.total_count}
+                          <div className={`absolute top-0 right-0 w-20 h-20 ${isDarkMode ? 'bg-white/10' : 'bg-black/10'} rounded-bl-full opacity-50`}></div>
+                          <p className={`text-xs ${isDarkMode ? 'text-white/60' : 'text-black/60'} mb-2 uppercase tracking-wider font-bold`}>Dominant class</p>
+                          <p className={`text-lg font-black ${isDarkMode ? 'text-white' : 'text-black'} break-words line-clamp-2 relative z-10`}>
+                            {seg?.dominant_class ?? '—'}
                           </p>
                         </div>
                         <div className={`relative border-2 ${isDarkMode ? 'border-white' : 'border-black'} rounded-2xl p-6 ${isDarkMode ? 'bg-black' : 'bg-white'} overflow-hidden group hover:${isDarkMode ? 'bg-white' : 'bg-black'} transition-colors duration-300`}>
-                          <div className={`absolute top-0 right-0 w-20 h-20 ${isDarkMode ? 'bg-white/10' : 'bg-black/10'} rounded-bl-full opacity-50 group-hover:${isDarkMode ? 'bg-black/10' : 'bg-white/10'}`}></div>
-                          <p className={`text-xs ${isDarkMode ? 'text-white/60' : 'text-black/60'} mb-2 uppercase tracking-wider font-bold group-hover:${isDarkMode ? 'text-black/60' : 'text-white/60'} transition-colors`}>Avg Confidence</p>
-                          <p className={`text-5xl font-black ${isDarkMode ? 'text-white' : 'text-black'} group-hover:${isDarkMode ? 'text-black' : 'text-white'} transition-colors relative z-10`}>
-                            {(results.detection_stats.average_confidence * 100).toFixed(0)}%
+                          <div className={`absolute top-0 right-0 w-20 h-20 ${isDarkMode ? 'bg-white/10' : 'bg-black/10'} rounded-bl-full opacity-50`}></div>
+                          <p className={`text-xs ${isDarkMode ? 'text-white/60' : 'text-black/60'} mb-2 uppercase tracking-wider font-bold`}>Overall confidence</p>
+                          <p className={`text-5xl font-black ${isDarkMode ? 'text-white' : 'text-black'} relative z-10`}>
+                            {((seg?.overall_confidence ?? 0) * 100).toFixed(0)}%
                           </p>
                         </div>
                       </div>
 
-                      {/* Annotated Image */}
+                      {/* Class legend */}
+                      {Object.keys(classLegend).length > 0 && (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-1 h-5 ${isDarkMode ? 'bg-white' : 'bg-black'} rounded-full`}></div>
+                            <h3 className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-black'} uppercase tracking-wider`}>Class legend</h3>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(classLegend).map(([className, colorName]) => (
+                              <span
+                                key={className}
+                                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm border ${isDarkMode ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'}`}
+                              >
+                                <span
+                                  className="w-3 h-3 rounded-full shrink-0"
+                                  style={{ backgroundColor: legendColorFromName(colorName) }}
+                                />
+                                <span className={isDarkMode ? 'text-white' : 'text-black'}>{className}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Overlay image */}
                       <div className="space-y-4">
                         <div className="flex items-center gap-2">
                           <div className={`w-1 h-5 ${isDarkMode ? 'bg-white' : 'bg-black'} rounded-full`}></div>
-                          <h3 className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-black'} uppercase tracking-wider`}>Annotated Image</h3>
+                          <h3 className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-black'} uppercase tracking-wider`}>Annotated image</h3>
                         </div>
                         <div className={`relative w-full ${isDarkMode ? 'bg-white/5' : 'bg-black/5'} rounded-xl overflow-hidden border-2 ${isDarkMode ? 'border-white/20' : 'border-black/20'} shadow-lg`}>
                           <img
-                            src={results.annotated_image}
-                            alt="Detection Result"
+                            src={results.overlay_image}
+                            alt="Segmentation overlay"
                             className="w-full object-contain"
                           />
                         </div>
                       </div>
 
-                      {/* Detection List */}
+                      {/* Class statistics */}
                       <div className="space-y-4 flex-1 flex flex-col">
                         <div className="flex items-center gap-2">
                           <div className={`w-1 h-5 ${isDarkMode ? 'bg-white' : 'bg-black'} rounded-full`}></div>
                           <h3 className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-black'} uppercase tracking-wider`}>
-                            Detection Details ({results.detections.length})
+                            Class statistics ({classStats.length})
                           </h3>
                         </div>
                         <div className="flex-1 overflow-y-auto space-y-3 pr-2">
-                          {results.detections.map((detection) => (
-                            <div
-                              key={detection.id}
-                              className={`border-2 ${isDarkMode ? 'border-white/20' : 'border-black/20'} rounded-xl p-4 ${isDarkMode ? 'bg-black' : 'bg-white'} hover:${isDarkMode ? 'border-white' : 'border-black'} hover:shadow-lg transition-all duration-300 group`}
-                            >
-                              <div className="flex justify-between items-start mb-3">
-                                <span className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-black'} group-hover:${isDarkMode ? 'text-white' : 'text-black'}`}>
-                                  DETECTION #{detection.id}
-                                </span>
-                                <span className={`text-xs font-mono font-black ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'} px-3 py-1.5 rounded-lg`}>
-                                  {(detection.confidence * 100).toFixed(1)}%
+                          {classStats.map(([className, stats]) => {
+                            const color = legendColorFromName(classLegend[className] ?? 'grey')
+                            return (
+                              <div
+                                key={className}
+                                className={`border-2 ${isDarkMode ? 'border-white/20' : 'border-black/20'} rounded-xl p-4 ${isDarkMode ? 'bg-black' : 'bg-white'} hover:shadow-lg transition-all duration-300 flex items-center gap-4`}
+                              >
+                                <div
+                                  className="w-1 h-12 rounded-full shrink-0"
+                                  style={{ backgroundColor: color }}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-black'} truncate`}>{className}</p>
+                                  <p className={`text-xs ${isDarkMode ? 'text-white/60' : 'text-black/60'}`}>
+                                    Pixels: {stats.pixel_count?.toLocaleString() ?? 0} • Avg confidence: {((stats.avg_confidence ?? 0) * 100).toFixed(1)}%
+                                  </p>
+                                </div>
+                                <span
+                                  className="text-sm font-mono font-bold px-3 py-1.5 rounded-lg shrink-0"
+                                  style={{ backgroundColor: `${color}20`, color }}
+                                >
+                                  {(stats.percentage ?? 0).toFixed(1)}%
                                 </span>
                               </div>
-                              <p className={`text-xs ${isDarkMode ? 'text-white/60' : 'text-black/60'} font-bold mb-2 uppercase tracking-wide`}>
-                                Class: {detection.class}
-                              </p>
-                              <p className={`text-xs ${isDarkMode ? 'text-white/50' : 'text-black/50'} font-mono ${isDarkMode ? 'bg-white/10' : 'bg-black/10'} px-2 py-1 rounded border ${isDarkMode ? 'border-white/20' : 'border-black/20'}`}>
-                                [{detection.bbox.x1.toFixed(0)}, {detection.bbox.y1.toFixed(0)}, {detection.bbox.x2.toFixed(0)}, {detection.bbox.y2.toFixed(0)}]
-                              </p>
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       </div>
                     </div>
@@ -331,10 +335,9 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Footer */}
           <div className={`mt-12 pt-8 border-t ${isDarkMode ? 'border-white/10' : 'border-black/10'}`}>
             <p className={`text-center text-xs ${isDarkMode ? 'text-white/40' : 'text-black/40'} font-medium tracking-wider uppercase`}>
-              Powered by YOLOv8m • UNET  • Flask Backend • Next.js Frontend
+              40× UNET segmentation • Flask backend • Next.js frontend
             </p>
           </div>
         </div>
