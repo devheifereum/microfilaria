@@ -69,7 +69,7 @@ const SOCKET_PATH = "/microphilaria_model_api/socket.io"
 // Detection colors (RGB)
 const CLASS_COLORS: Record<string, string> = {
   'Background': 'rgba(0, 0, 0, 0.5)',
-  'WB Wuschereria Bancrofti': 'rgba(0, 255, 0, 0.7)',
+  'WB Wuchereria bancrofti': 'rgba(0, 255, 0, 0.7)',
   'BM Brugia Malayi': 'rgba(255, 0, 0, 0.7)',
   'BT Brugia Timori': 'rgba(255, 255, 0, 0.7)',
   'BP Brugia Pahangi': 'rgba(0, 0, 255, 0.7)'
@@ -197,7 +197,7 @@ export default function RealTimeDetectPage() {
         ctx.strokeRect(boxX, boxY, boxW, boxH)
 
         // Draw label background
-        const label = `${det.class} ${(det.confidence * 100).toFixed(1)}%`
+        const label = `${det.class.split(' ')[0] + ' ' + det.class.split(' ')[1]} ${(det.confidence * 100).toFixed(1)}%`
         ctx.font = "bold 14px Arial"
         const textWidth = ctx.measureText(label).width
         ctx.fillStyle = CLASS_COLORS[det.class] || "rgba(0, 255, 0, 0.8)"

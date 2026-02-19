@@ -34,7 +34,14 @@ function getInitialDark(): boolean {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [isDarkMode, setIsDarkMode] = useState(getInitialDark)
+  // Use fixed initial state so server and client first render match (avoids hydration mismatch).
+  // Real theme is applied in useEffect after mount.
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  // After mount, read stored/system theme so it matches client preference
+  useEffect(() => {
+    setIsDarkMode(getInitialDark())
+  }, [])
 
   // Keep <html> class and localStorage in sync
   useEffect(() => {

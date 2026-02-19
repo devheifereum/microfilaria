@@ -21,12 +21,12 @@ export function Navbar() {
           <NavigationMenuList className="gap-2">
             <NavigationMenuItem>
               <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-                <Link href="/">YOLO Detect (10x Image Only)</Link>
+                <Link href="/">Microfilaria Detection</Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
               <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-                <Link href="/classification-detect">UNET Classification Detect (40x Image Only)</Link>
+                <Link href="/classification-detect">Microfilaria Classification</Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
           </NavigationMenuList>

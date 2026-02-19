@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Upload, Target, AlertCircle, Microscope } from 'lucide-react'
+import Image from 'next/image'
+import { Upload, Target, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { DotPattern } from '@/components/ui/dot-pattern'
@@ -48,6 +49,17 @@ function legendColorFromName(name: string): string {
   if (n.includes('green')) return '#22c55e'
   if (n.includes('orange')) return '#f97316'
   return '#6b7280'
+}
+
+// Helper function to split class name into abbreviation and full name
+function splitClassName(className: string): { abbreviation: string; fullName: string } {
+  const parts = className.split(' ')
+  if (parts.length >= 2) {
+    const abbreviation = parts[0]
+    const fullName = parts.slice(1).join(' ')
+    return { abbreviation, fullName }
+  }
+  return { abbreviation: className, fullName: '' }
 }
 
 export default function ClassificationDetectPage() {
@@ -120,17 +132,17 @@ export default function ClassificationDetectPage() {
           <div className="max-w-7xl mx-auto px-8 py-12">
             <div className="flex items-center gap-4 mb-3">
               <div className="relative">
-                <div className={`w-14 h-14 ${isDarkMode ? 'bg-white' : 'bg-black'} rounded-xl flex items-center justify-center`}>
-                  <Microscope className={`w-8 h-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
+                <div className={`relative w-14 h-14 ${isDarkMode ? 'bg-white' : 'bg-black'} rounded-2xl flex items-center justify-center overflow-hidden`}>
+                  <Image src="/favicon.ico" alt="Microfilaria" fill className="object-contain rounded-2xl" sizes="3.5rem" />
                 </div>
                 <div className={`absolute -top-1 -right-1 w-4 h-4 ${isDarkMode ? 'bg-white' : 'bg-black'} rounded-full animate-pulse`}></div>
               </div>
               <div>
                 <h1 className={`text-4xl font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-black'} mb-1`}>
-                  40× UNET Segmentation
+                  Microfilaria Analyser
                 </h1>
                 <p className={`${isDarkMode ? 'text-white/60' : 'text-black/60'} text-sm tracking-wide`}>
-                  UNET Classification Overlay • Segmentation overlay • Class statistics
+                  AI-Based Microfilaria Species Differentiation System • 40x Microscopy Image  
                 </p>
               </div>
             </div>
@@ -235,19 +247,20 @@ export default function ClassificationDetectPage() {
                   {results && (
                     <div className="space-y-8 flex-1 flex flex-col">
                       {/* Stats: Dominant class + Overall confidence */}
-                      <div className="grid grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1">
                         <div className={`relative border-2 ${isDarkMode ? 'border-white' : 'border-black'} rounded-2xl p-6 ${isDarkMode ? 'bg-black' : 'bg-white'} overflow-hidden group hover:${isDarkMode ? 'bg-white' : 'bg-black'} transition-colors duration-300`}>
                           <div className={`absolute top-0 right-0 w-20 h-20 ${isDarkMode ? 'bg-white/10' : 'bg-black/10'} rounded-bl-full opacity-50`}></div>
                           <p className={`text-xs ${isDarkMode ? 'text-white/60' : 'text-black/60'} mb-2 uppercase tracking-wider font-bold`}>Dominant class</p>
                           <p className={`text-lg font-black ${isDarkMode ? 'text-white' : 'text-black'} break-words line-clamp-2 relative z-10`}>
-                            {seg?.dominant_class ?? '—'}
-                          </p>
-                        </div>
-                        <div className={`relative border-2 ${isDarkMode ? 'border-white' : 'border-black'} rounded-2xl p-6 ${isDarkMode ? 'bg-black' : 'bg-white'} overflow-hidden group hover:${isDarkMode ? 'bg-white' : 'bg-black'} transition-colors duration-300`}>
-                          <div className={`absolute top-0 right-0 w-20 h-20 ${isDarkMode ? 'bg-white/10' : 'bg-black/10'} rounded-bl-full opacity-50`}></div>
-                          <p className={`text-xs ${isDarkMode ? 'text-white/60' : 'text-black/60'} mb-2 uppercase tracking-wider font-bold`}>Overall confidence</p>
-                          <p className={`text-5xl font-black ${isDarkMode ? 'text-white' : 'text-black'} relative z-10`}>
-                            {((seg?.overall_confidence ?? 0) * 100).toFixed(0)}%
+                            {seg?.dominant_class ? (() => {
+                              const { abbreviation, fullName } = splitClassName(seg.dominant_class)
+                              return (
+                                <>
+                                  {abbreviation}
+                                  {fullName && <span className="italic"> {fullName}</span>}
+                                </>
+                              )
+                            })() : '—'}
                           </p>
                         </div>
                       </div>
@@ -260,18 +273,24 @@ export default function ClassificationDetectPage() {
                             <h3 className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-black'} uppercase tracking-wider`}>Class legend</h3>
                           </div>
                           <div className="flex flex-wrap gap-2">
-                            {Object.entries(classLegend).map(([className, colorName]) => (
-                              <span
-                                key={className}
-                                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm border ${isDarkMode ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'}`}
-                              >
+                            {Object.entries(classLegend).map(([className, colorName]) => {
+                              const { abbreviation, fullName } = splitClassName(className)
+                              return (
                                 <span
-                                  className="w-3 h-3 rounded-full shrink-0"
-                                  style={{ backgroundColor: legendColorFromName(colorName) }}
-                                />
-                                <span className={isDarkMode ? 'text-white' : 'text-black'}>{className}</span>
-                              </span>
-                            ))}
+                                  key={className}
+                                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm border ${isDarkMode ? 'border-white/20 bg-white/5' : 'border-black/20 bg-black/5'}`}
+                                >
+                                  <span
+                                    className="w-3 h-3 rounded-full shrink-0"
+                                    style={{ backgroundColor: legendColorFromName(colorName) }}
+                                  />
+                                  <span className={isDarkMode ? 'text-white' : 'text-black'}>
+                                    {abbreviation}
+                                    {fullName && <span className="italic"> {fullName}</span>}
+                                  </span>
+                                </span>
+                              )
+                            })}
                           </div>
                         </div>
                       )}
@@ -302,6 +321,7 @@ export default function ClassificationDetectPage() {
                         <div className="flex-1 overflow-y-auto space-y-3 pr-2">
                           {classStats.map(([className, stats]) => {
                             const color = legendColorFromName(classLegend[className] ?? 'grey')
+                            const { abbreviation, fullName } = splitClassName(className)
                             return (
                               <div
                                 key={className}
@@ -312,13 +332,16 @@ export default function ClassificationDetectPage() {
                                   style={{ backgroundColor: color }}
                                 />
                                 <div className="flex-1 min-w-0">
-                                  <p className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-black'} truncate`}>{className}</p>
+                                  <p className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-black'} truncate`}>
+                                    {abbreviation}
+                                    {fullName && <span className="italic"> {fullName}</span>}
+                                  </p>
                                   <p className={`text-xs ${isDarkMode ? 'text-white/60' : 'text-black/60'}`}>
                                     Pixels: {stats.pixel_count?.toLocaleString() ?? 0} • Avg confidence: {((stats.avg_confidence ?? 0) * 100).toFixed(1)}%
                                   </p>
                                 </div>
                                 <span
-                                  className="text-sm font-mono font-bold px-3 py-1.5 rounded-lg shrink-0"
+                                  className="text-sm font-mono font-bold px-3 py-1.5 rounded-lg shrink-0 italic"
                                   style={{ backgroundColor: `${color}20`, color }}
                                 >
                                   {(stats.percentage ?? 0).toFixed(1)}%

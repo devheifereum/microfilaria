@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Upload, Target, AlertCircle, Microscope } from 'lucide-react'
+import Image from 'next/image'
+import { Upload, Target, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { DotPattern } from '@/components/ui/dot-pattern'
@@ -106,17 +107,17 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-8 py-12">
             <div className="flex items-center gap-4 mb-3">
               <div className="relative">
-                <div className={`w-14 h-14 ${isDarkMode ? 'bg-white' : 'bg-black'} rounded-xl flex items-center justify-center`}>
-                  <Microscope className={`w-8 h-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
+                <div className={`relative w-14 h-14 ${isDarkMode ? 'bg-white' : 'bg-black'} rounded-2xl flex items-center justify-center overflow-hidden`}>
+                  <Image src="/favicon.ico" alt="Microfilaria" fill className="object-contain rounded-2xl" sizes="3.5rem" />
                 </div>
                 <div className={`absolute -top-1 -right-1 w-4 h-4 ${isDarkMode ? 'bg-white' : 'bg-black'} rounded-full animate-pulse`}></div>
               </div>
               <div>
                 <h1 className={`text-4xl font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-black'} mb-1`}>
-                  YOLOv8 10x Detection
+                  Microfilaria Analyser
                 </h1>
                 <p className={`${isDarkMode ? 'text-white/60' : 'text-black/60'} text-sm tracking-wide`}>
-                  Advanced YOLOv8m Neural Network • 10x Microscopy Image Detection
+                  AI-Based Microfilaria Detection System • 10x Microscopy Image 
                 </p>
               </div>
             </div>
