@@ -70,9 +70,9 @@ const SOCKET_PATH = "/microphilaria_model_api/socket.io"
 const CLASS_COLORS: Record<string, string> = {
   'Background': 'rgba(0, 0, 0, 0.5)',
   'WB Wuchereria bancrofti': 'rgba(0, 255, 0, 0.7)',
-  'BM Brugia Malayi': 'rgba(255, 0, 0, 0.7)',
-  'BT Brugia Timori': 'rgba(255, 255, 0, 0.7)',
-  'BP Brugia Pahangi': 'rgba(0, 0, 255, 0.7)'
+  'BM Brugia malayi': 'rgba(255, 0, 0, 0.7)',
+  'BT Brugia timori': 'rgba(255, 255, 0, 0.7)',
+  'BP Brugia pahangi': 'rgba(0, 0, 255, 0.7)'
 }
 
 export default function RealTimeDetectPage() {

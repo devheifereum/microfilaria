@@ -117,6 +117,12 @@ export default function ClassificationDetectPage() {
   const classStats = seg?.class_statistics ? Object.entries(seg.class_statistics) : []
   const classLegend = results?.class_legend ?? {}
 
+  // Detected classes: not Background, avg_confidence > 0.9, percentage > 0.01
+  const detectedClasses = classStats.filter(([className, stats]) => {
+    if (className === 'Background') return false
+    return (stats.avg_confidence ?? 0) > 0.9 && (stats.percentage ?? 0) > 0.01
+  })
+
   return (
     <main className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
       <DotPattern
@@ -225,7 +231,7 @@ export default function ClassificationDetectPage() {
                 <CardHeader className={`border-b ${isDarkMode ? 'border-white/10' : 'border-black/10'}`}>
                   <CardTitle className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>Segmentation Results</CardTitle>
                   <CardDescription className={isDarkMode ? 'text-white/60' : 'text-black/60'}>
-                    Dominant class, overlay, and class statistics
+                    Detected classes, overlay, and class statistics
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-8 flex-1 flex flex-col">
@@ -246,23 +252,57 @@ export default function ClassificationDetectPage() {
 
                   {results && (
                     <div className="space-y-8 flex-1 flex flex-col">
-                      {/* Stats: Dominant class + Overall confidence */}
-                      <div className="grid grid-cols-1">
-                        <div className={`relative border-2 ${isDarkMode ? 'border-white' : 'border-black'} rounded-2xl p-6 ${isDarkMode ? 'bg-black' : 'bg-white'} overflow-hidden group hover:${isDarkMode ? 'bg-white' : 'bg-black'} transition-colors duration-300`}>
-                          <div className={`absolute top-0 right-0 w-20 h-20 ${isDarkMode ? 'bg-white/10' : 'bg-black/10'} rounded-bl-full opacity-50`}></div>
-                          <p className={`text-xs ${isDarkMode ? 'text-white/60' : 'text-black/60'} mb-2 uppercase tracking-wider font-bold`}>Dominant class</p>
-                          <p className={`text-lg font-black ${isDarkMode ? 'text-white' : 'text-black'} break-words line-clamp-2 relative z-10`}>
-                            {seg?.dominant_class ? (() => {
-                              const { abbreviation, fullName } = splitClassName(seg.dominant_class)
-                              return (
-                                <>
-                                  {abbreviation}
-                                  {fullName && <span className="italic"> {fullName}</span>}
-                                </>
-                              )
-                            })() : '—'}
-                          </p>
+                      {/* Detected classes (avg_confidence > 0.9, percentage > 0.01, exclude Background) */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-1 h-5 ${isDarkMode ? 'bg-white' : 'bg-black'} rounded-full`}></div>
+                          <h3 className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-black'} uppercase tracking-wider`}>
+                            Detected classes ({detectedClasses.length})
+                          </h3>
                         </div>
+                        {detectedClasses.length === 0 ? (
+                          <div className={`relative border-2 ${isDarkMode ? 'border-white/30' : 'border-black/30'} rounded-2xl p-6 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
+                            <p className={`text-sm ${isDarkMode ? 'text-white/60' : 'text-black/60'}`}>
+                              No species detected above threshold (avg confidence &gt; 90%, coverage &gt; 0.01%)
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 gap-3">
+                            {detectedClasses.map(([className, stats]) => {
+                              const color = legendColorFromName(classLegend[className] ?? 'grey')
+                              const { abbreviation, fullName } = splitClassName(className)
+                              return (
+                                <div
+                                  key={className}
+                                  className={`relative border-2 ${isDarkMode ? 'border-white' : 'border-black'} rounded-2xl p-6 ${isDarkMode ? 'bg-black' : 'bg-white'} overflow-hidden group hover:${isDarkMode ? 'bg-white/5' : 'bg-black/5'} transition-colors duration-300`}
+                                >
+                                  <div className={`absolute top-0 right-0 w-20 h-20 ${isDarkMode ? 'bg-white/10' : 'bg-black/10'} rounded-bl-full opacity-50`}></div>
+                                  <div className="flex items-center gap-3 relative z-10">
+                                    <div
+                                      className="w-2 h-10 rounded-full shrink-0"
+                                      style={{ backgroundColor: color }}
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <p className={`text-lg font-black ${isDarkMode ? 'text-white' : 'text-black'} break-words`}>
+                                        {abbreviation}
+                                        {fullName && <span className="italic"> {fullName}</span>}
+                                      </p>
+                                      <p className={`text-xs ${isDarkMode ? 'text-white/60' : 'text-black/60'} mt-0.5`}>
+                                        Avg confidence: {((stats.avg_confidence ?? 0) * 100).toFixed(1)}% • Pixels: {stats.pixel_count?.toLocaleString() ?? 0}
+                                      </p>
+                                    </div>
+                                    <span
+                                      className="text-sm font-mono font-bold px-3 py-1.5 rounded-lg shrink-0"
+                                      style={{ backgroundColor: `${color}20`, color }}
+                                    >
+                                      {(stats.percentage ?? 0).toFixed(2)}%
+                                    </span>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
                       </div>
 
                       {/* Class legend */}
