@@ -145,7 +145,7 @@ export default function ClassificationDetectPage() {
               </div>
               <div>
                 <h1 className={`text-4xl font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-black'} mb-1`}>
-                  Microfilaria Analyser
+                  Microfilaria <span className="font-analyser font-semibold lowercase">analyser</span>
                 </h1>
                 <p className={`${isDarkMode ? 'text-white/60' : 'text-black/60'} text-sm tracking-wide`}>
                   AI-Based Microfilaria Species Differentiation System • 40x Microscopy Image  
@@ -161,7 +161,7 @@ export default function ClassificationDetectPage() {
             <div className="h-full">
               <Card className={`${isDarkMode ? 'bg-black border-white/20' : 'bg-white border-black/20'} shadow-2xl h-full flex flex-col`}>
                 <CardHeader className={`border-b ${isDarkMode ? 'border-white/10' : 'border-black/10'}`}>
-                  <CardTitle className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>Upload Sample (40×)</CardTitle>
+                  <CardTitle className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>Upload Image (40×)</CardTitle>
                   <CardDescription className={isDarkMode ? 'text-white/60' : 'text-black/60'}>
                     Select a blood smear image for segmentation
                   </CardDescription>

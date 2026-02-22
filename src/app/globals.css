@@ -120,3 +120,7 @@
     @apply bg-background text-foreground;
   }
 }
+
+.font-analyser {
+  font-family: var(--font-analyser), cursive;
+}
