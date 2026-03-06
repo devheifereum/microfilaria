@@ -398,11 +398,6 @@ export default function ClassificationDetectPage() {
             </div>
           </div>
 
-          <div className={`mt-12 pt-8 border-t ${isDarkMode ? 'border-white/10' : 'border-black/10'}`}>
-            <p className={`text-center text-xs ${isDarkMode ? 'text-white/40' : 'text-black/40'} font-medium tracking-wider uppercase`}>
-              40× UNET segmentation • Flask backend • Next.js frontend
-            </p>
-          </div>
         </div>
       </div>
     </main>
