@@ -117,11 +117,11 @@ export default function ClassificationDetectPage() {
   const classStats = seg?.class_statistics ? Object.entries(seg.class_statistics) : []
   const classLegend = results?.class_legend ?? {}
 
-  // Detected classes: not Background, avg_confidence > 0.9, percentage > 0.01
-  const detectedClasses = classStats.filter(([className, stats]) => {
-    if (className === 'Background') return false
-    return (stats.avg_confidence ?? 0) > 0.9 && (stats.percentage ?? 0) > 0.01
-  })
+  const dominantClass = seg?.dominant_class ?? ''
+  const dominantConfidence = seg?.dominant_confidence ?? 0
+  const dominantPercentage = seg?.dominant_percentage ?? 0
+  const overallConfidence = seg?.overall_confidence ?? 0
+  const hasDominantSpecies = dominantClass && dominantClass !== 'Background'
 
   return (
     <main className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
@@ -252,55 +252,62 @@ export default function ClassificationDetectPage() {
 
                   {results && (
                     <div className="space-y-8 flex-1 flex flex-col">
-                      {/* Detected classes (avg_confidence > 0.9, percentage > 0.01, exclude Background) */}
+                      {/* Dominant class & overall confidence from API */}
                       <div className="space-y-4">
                         <div className="flex items-center gap-2">
                           <div className={`w-1 h-5 ${isDarkMode ? 'bg-white' : 'bg-black'} rounded-full`}></div>
                           <h3 className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-black'} uppercase tracking-wider`}>
-                            Detected classes ({detectedClasses.length})
+                            Detection summary
                           </h3>
                         </div>
-                        {detectedClasses.length === 0 ? (
+                        <div className="grid grid-cols-1 gap-3">
+                          <div className={`relative border-2 ${isDarkMode ? 'border-white/20' : 'border-black/20'} rounded-2xl p-4 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
+                            <p className={`text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-white/60' : 'text-black/60'} mb-1`}>Overall confidence</p>
+                            <p className={`text-2xl font-black font-mono ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                              {(overallConfidence * 100).toFixed(2)}%
+                            </p>
+                          </div>
+                        </div>
+                        {!hasDominantSpecies ? (
                           <div className={`relative border-2 ${isDarkMode ? 'border-white/30' : 'border-black/30'} rounded-2xl p-6 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
                             <p className={`text-sm ${isDarkMode ? 'text-white/60' : 'text-black/60'}`}>
-                              No species detected above threshold (avg confidence &gt; 90%, coverage &gt; 0.01%)
+                              No species detected (dominant class is Background or missing)
                             </p>
                           </div>
                         ) : (
-                          <div className="grid grid-cols-1 gap-3">
-                            {detectedClasses.map(([className, stats]) => {
-                              const color = legendColorFromName(classLegend[className] ?? 'grey')
-                              const { abbreviation, fullName } = splitClassName(className)
-                              return (
-                                <div
-                                  key={className}
-                                  className={`relative border-2 ${isDarkMode ? 'border-white' : 'border-black'} rounded-2xl p-6 ${isDarkMode ? 'bg-black' : 'bg-white'} overflow-hidden group hover:${isDarkMode ? 'bg-white/5' : 'bg-black/5'} transition-colors duration-300`}
-                                >
-                                  <div className={`absolute top-0 right-0 w-20 h-20 ${isDarkMode ? 'bg-white/10' : 'bg-black/10'} rounded-bl-full opacity-50`}></div>
-                                  <div className="flex items-center gap-3 relative z-10">
-                                    <div
-                                      className="w-2 h-10 rounded-full shrink-0"
-                                      style={{ backgroundColor: color }}
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                      <p className={`text-lg font-black ${isDarkMode ? 'text-white' : 'text-black'} break-words`}>
+                          <div className={`relative border-2 ${isDarkMode ? 'border-white' : 'border-black'} rounded-2xl p-6 overflow-hidden ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
+                            <div className={`absolute top-0 right-0 w-20 h-20 ${isDarkMode ? 'bg-white/10' : 'bg-black/10'} rounded-bl-full opacity-50`}></div>
+                            <div className="flex items-center gap-3 relative z-10">
+                              <div
+                                className="w-2 h-10 rounded-full shrink-0"
+                                style={{ backgroundColor: legendColorFromName(classLegend[dominantClass] ?? 'grey') }}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-lg font-black ${isDarkMode ? 'text-white' : 'text-black'} break-words`}>
+                                  {(() => {
+                                    const { abbreviation, fullName } = splitClassName(dominantClass)
+                                    return (
+                                      <>
                                         {abbreviation}
                                         {fullName && <span className="italic"> {fullName}</span>}
-                                      </p>
-                                      <p className={`text-xs ${isDarkMode ? 'text-white/60' : 'text-black/60'} mt-0.5`}>
-                                        Avg confidence: {((stats.avg_confidence ?? 0) * 100).toFixed(1)}% • Pixels: {stats.pixel_count?.toLocaleString() ?? 0}
-                                      </p>
-                                    </div>
-                                    <span
-                                      className="text-sm font-mono font-bold px-3 py-1.5 rounded-lg shrink-0"
-                                      style={{ backgroundColor: `${color}20`, color }}
-                                    >
-                                      {(stats.percentage ?? 0).toFixed(2)}%
-                                    </span>
-                                  </div>
-                                </div>
-                              )
-                            })}
+                                      </>
+                                    )
+                                  })()}
+                                </p>
+                                <p className={`text-xs ${isDarkMode ? 'text-white/60' : 'text-black/60'} mt-0.5`}>
+                                  Dominant confidence: {(dominantConfidence * 100).toFixed(2)}%
+                                </p>
+                              </div>
+                              <span
+                                className="text-sm font-mono font-bold px-3 py-1.5 rounded-lg shrink-0"
+                                style={{
+                                  backgroundColor: `${legendColorFromName(classLegend[dominantClass] ?? 'grey')}20`,
+                                  color: legendColorFromName(classLegend[dominantClass] ?? 'grey'),
+                                }}
+                              >
+                                {dominantPercentage.toFixed(2)}%
+                              </span>
+                            </div>
                           </div>
                         )}
                       </div>
